@@ -49,17 +49,12 @@ async function run() {
 
     async function products() {
         const cokkies = await page.$eval('#cookies', el => parseFloat(el.innerText));
-        const priceValueProduct0 = await page.$eval(`#productPrice0`, el => parseFloat(el.innerText));
-        const priceValueProduct1 = await page.$eval(`#productPrice1`, el => parseFloat(el.innerText));
-
-        if (cokkies > priceValueProduct0) {
-            await page.click('#product0');
+        for (i = 0; i < 2; i++) {
+            const priceValueProduct = await page.$eval(`#productPrice${i}`, el => parseFloat(el.innerText));
+            if (cokkies > priceValueProduct) {
+                await page.click(`#product${i}`);
+            }
         }
-
-        if (cokkies > priceValueProduct1) {
-            await page.click('#product1');
-        }
-
     }
 
     try {
