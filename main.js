@@ -7,7 +7,41 @@ function delay(time) {
 async function run() {
     let browser;
     try {
+        async function Upgrade() {
+            const upgradeSelector = `#upgrade0`;
+            const hasEnabledClass = await page.evaluate((selector) => {
+                const upgradeElement = document.querySelector(selector);
+                return upgradeElement && upgradeElement.classList.contains('enabled');
+            }, upgradeSelector);
 
+            if (hasEnabledClass) {
+                await page.click(upgradeSelector);
+                return true;
+            }
+
+            return false;
+        }
+
+        async function closeNote(noteId) {
+            const noteSelector = `#note-${noteId}`;
+            const closeButtonSelector = `${noteSelector} .close`;
+
+            const noteExists = await page.$(noteSelector) !== null;
+            if (!noteExists) {
+                return false;
+            }
+
+            const closeButtonExists = await page.$(closeButtonSelector) !== null;
+            if (!closeButtonExists) {
+                return false;
+            }
+            await page.click(closeButtonSelector);
+            if (countNotes == 0) {
+                countNotes += 1;
+            }
+            countNotes++;
+            return true;
+        }
 
         browser = await puppeteer.launch({ headless: false });
         const page = await browser.newPage();
@@ -20,33 +54,27 @@ async function run() {
 
         await page.waitForSelector('#bigCookie', { visible: true });
 
-        function searchUpgrade(number) {
-            return page.$eval(`#upgrade${number}`, el => parseFloat(el.innerText));
-        }
+        await page.click('a.cc_btn.cc_btn_accept_all');
 
-        function clickUpgrade(number) {
-            page.click(`#upgrade${number}`);
-        }
-
-        countUpgrade = 0;
+        let countNotes = 0;
 
         while (true) {
             const cokkies = await page.$eval('#cookies', el => parseFloat(el.innerText));
-            const priceValue = await page.$eval('#productPrice0', el => parseFloat(el.innerText));
+            const priceValueProduct1 = await page.$eval('#productPrice0', el => parseFloat(el.innerText));
+            const priceValueProduct2 = await page.$eval('#productPrice1', el => parseFloat(el.innerText));
+            await closeNote(countNotes);
 
             await page.click('#bigCookie');
 
-            if (cokkies > priceValue) {
-                await page.click('.product');
+            if (cokkies > priceValueProduct1) {
+                await page.click('#product0');
             }
 
-            const upgradePrice = await searchUpgrade(countUpgrade);
-
-            if (cookies > upgradePrice) {
-                await clickUpgrade(countUpgrade);
-                countUpgrade++;
+            if (cokkies > priceValueProduct2) {
+                await page.click('#product1');
             }
 
+            await Upgrade();
         }
 
 
