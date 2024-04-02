@@ -3,48 +3,67 @@ const puppeteer = require('puppeteer');
 function delay(time) {
     return new Promise(resolve => setTimeout(resolve, time));
 }
-
 async function run() {
     let browser;
-    try {
-        async function Upgrade() {
-            const upgradeSelector = `#upgrade0`;
-            const hasEnabledClass = await page.evaluate((selector) => {
-                const upgradeElement = document.querySelector(selector);
-                return upgradeElement && upgradeElement.classList.contains('enabled');
-            }, upgradeSelector);
 
-            if (hasEnabledClass) {
-                await page.click(upgradeSelector);
-                return true;
-            }
+    browser = await puppeteer.launch({ headless: false });
+    const page = await browser.newPage();
 
-            return false;
-        }
+    let countNotes = 0;
 
-        async function closeNote(noteId) {
-            const noteSelector = `#note-${noteId}`;
-            const closeButtonSelector = `${noteSelector} .close`;
+    async function upgrade() {
+        const upgradeSelector = `#upgrade0`;
+        const hasEnabledClass = await page.evaluate((selector) => {
+            const upgradeElement = document.querySelector(selector);
+            return upgradeElement && upgradeElement.classList.contains('enabled');
+        }, upgradeSelector);
 
-            const noteExists = await page.$(noteSelector) !== null;
-            if (!noteExists) {
-                return false;
-            }
-
-            const closeButtonExists = await page.$(closeButtonSelector) !== null;
-            if (!closeButtonExists) {
-                return false;
-            }
-            await page.click(closeButtonSelector);
-            if (countNotes == 0) {
-                countNotes += 1;
-            }
-            countNotes++;
+        if (hasEnabledClass) {
+            await page.click(upgradeSelector);
             return true;
         }
 
-        browser = await puppeteer.launch({ headless: false });
-        const page = await browser.newPage();
+        return false;
+    }
+
+    async function closeNote(noteId) {
+        const noteSelector = `#note-${noteId}`;
+        const closeButtonSelector = `${noteSelector} .close`;
+
+        const noteExists = await page.$(noteSelector) !== null;
+        if (!noteExists) {
+            return false;
+        }
+
+        const closeButtonExists = await page.$(closeButtonSelector) !== null;
+        if (!closeButtonExists) {
+            return false;
+        }
+        await page.click(closeButtonSelector);
+        if (countNotes == 0) {
+            countNotes += 1;
+        }
+        countNotes++;
+        return true;
+    }
+
+    async function products() {
+        const cokkies = await page.$eval('#cookies', el => parseFloat(el.innerText));
+        const priceValueProduct0 = await page.$eval(`#productPrice0`, el => parseFloat(el.innerText));
+        const priceValueProduct1 = await page.$eval(`#productPrice1`, el => parseFloat(el.innerText));
+
+        if (cokkies > priceValueProduct0) {
+            await page.click('#product0');
+        }
+
+        if (cokkies > priceValueProduct1) {
+            await page.click('#product1');
+        }
+
+    }
+
+    try {
+
         await page.goto('https://orteil.dashnet.org/cookieclicker/');
 
         await page.waitForSelector('#langSelect-PT-BR', { visible: true });
@@ -56,25 +75,14 @@ async function run() {
 
         await page.click('a.cc_btn.cc_btn_accept_all');
 
-        let countNotes = 0;
-
         while (true) {
-            const cokkies = await page.$eval('#cookies', el => parseFloat(el.innerText));
-            const priceValueProduct1 = await page.$eval('#productPrice0', el => parseFloat(el.innerText));
-            const priceValueProduct2 = await page.$eval('#productPrice1', el => parseFloat(el.innerText));
             await closeNote(countNotes);
 
             await page.click('#bigCookie');
 
-            if (cokkies > priceValueProduct1) {
-                await page.click('#product0');
-            }
+            await upgrade();
 
-            if (cokkies > priceValueProduct2) {
-                await page.click('#product1');
-            }
-
-            await Upgrade();
+            await products();
         }
 
 
